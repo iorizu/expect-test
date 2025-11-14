@@ -2,8 +2,8 @@ use std::{env, fs, path::PathBuf};
 
 use xshell::{cmd, Shell};
 
-pub type Error = Box<dyn std::error::Error>;
-pub type Result<T, E = Error> = std::result::Result<T, E>;
+type Error = Box<dyn std::error::Error>;
+type Result<T, E = Error> = std::result::Result<T, E>;
 
 fn main() {
     if let Err(err) = try_main() {
@@ -22,14 +22,14 @@ fn try_main() -> Result<()> {
         }
     }
 
-    let sh = &Shell::new().unwrap();
+    let sh = Shell::new()?;
 
-    let cargo_toml = cargo_toml(sh)?;
+    let cargo_toml = cargo_toml(&sh)?;
     let version = cargo_toml.get("version")?;
     let tag = format!("v{}", version);
 
     let dry_run =
-        env::var("CI").is_err() || git::has_tag(sh, &tag)? || git::current_branch(sh)? != "master";
+        env::var("CI").is_err() || git::has_tag(&sh, &tag)? || git::current_branch(&sh)? != "master";
 
     let token = env::var("CRATES_IO_TOKEN").unwrap_or("no token".to_string());
     let dry_run_flag = dry_run.then_some("--dry-run");
@@ -96,7 +96,7 @@ mod git {
         Ok(res)
     }
 
-    pub fn tag_list(sh: &Shell) -> Result<Vec<String>> {
+    fn tag_list(sh: &Shell) -> Result<Vec<String>> {
         let tags = cmd!(sh, "git tag --list").read()?;
         let res = tags.lines().map(|it| it.trim().to_string()).collect();
         Ok(res)
